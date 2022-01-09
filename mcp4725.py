@@ -1,5 +1,7 @@
 # Copyright (c) 2016 Adafruit Industries
-# Author: Tony DiCola
+# Initial Author: Tony DiCola
+# Copyright (c) 2021 Robert Hammelrath
+# Changed for genuine Micropython
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,31 +20,25 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-import logging
-
 
 # Register values:
 WRITEDAC         = 0x40
 WRITEDACEEPROM   = 0x60
 
 # Default I2C address:
-DEFAULT_ADDRESS  = 0x62
+DEFAULT_ADDRESS  = 0x60
 
 
-logger = logging.getLogger(__name__)
-
-
-class MCP4725(object):
+class MCP4725():
     """Base functionality for MCP4725 digital to analog converter."""
 
-    def __init__(self, address=DEFAULT_ADDRESS, i2c=None, **kwargs):
+    def __init__(self, i2c, address=DEFAULT_ADDRESS):
         """Create an instance of the MCP4725 DAC."""
-        if i2c is None:
-            import Adafruit_GPIO.I2C as I2C
-            i2c = I2C
-        self._device = i2c.get_i2c_device(address, **kwargs)
+        self.i2c = i2c
+        self.msg = bytearray(3)
+        self.address = address
 
-    def set_voltage(self, value, persist=False):
+    def set(self, value, persist=False):
         """Set the output voltage to specified value.  Value is a 12-bit number
         (0-4095) that is used to calculate the output voltage from:
 
@@ -57,12 +53,9 @@ class MCP4725(object):
             value = 4095
         if value < 0:
             value = 0
-        logging.debug('Setting value to {0:04}'.format(value))
         # Generate the register bytes and send them.
         # See datasheet figure 6-2:
-        #   https://www.adafruit.com/datasheets/mcp4725.pdf 
-        reg_data = [(value >> 4) & 0xFF, (value << 4) & 0xFF]
-        if persist:
-            self._device.writeList(WRITEDACEEPROM, reg_data)
-        else:
-            self._device.writeList(WRITEDAC, reg_data)
+        self.msg[0] = WRITEDACEEPROM if persist else WRITEDAC
+        self.msg[1] = value >> 4
+        self.msg[2] = (value << 4) & 0xFF
+        self.i2c.writeto(self.address, self.msg)

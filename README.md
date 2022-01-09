@@ -1,30 +1,56 @@
-DEPRECATED LIBRARY Adafruit Python MCP4725
-===================
+# Simple MCP4725 class
 
-This library has been deprecated!
+Derived from the Adafruit MCP4725 class.
 
-we are now only using our circuitpython sensor libraries in python
+## Class
 
-we are leaving the code up for historical/research purposes but archiving the repository.
+dac = MCP4725(i2c, * address=0x60)
 
-check out this guide for using the mcp4725 with python!
-https://learn.adafruit.com/mcp4725-12-bit-dac-tutorial/python-circuitpython
+Create the DAC instance. Parameters:
 
-# 
-Python code to use the MCP4725 digital to analog converter with a Raspberry Pi or BeagleBone black.
+  *i2c*      The I2C object used for communication
+  *address*  The I2C address. The default value is 0x60 
 
-## Installation
+## Method
 
-To install the library from source (recommended) run the following commands on a Raspberry Pi or other Debian-based OS system:
+dac.set(value)
 
-    sudo apt-get install git build-essential python-dev
-    cd ~
-    git clone https://github.com/adafruit/Adafruit_Python_MCP4725.git
-    cd Adafruit_Python_MCP4725
-    sudo python setup.py install
+Set the ouput value of the DAC to Vdd * value / 4096. The input value is
+silently clamped to the range 0..4095
 
-Alternatively you can install from pip with:
+## Example
 
-    sudo pip install adafruit-mcp4725
+```
+# Simple demo of setting the output voltage of the MCP4725 DAC.
+# Will alternate setting 0V, 1/2VDD, and VDD each second.
+# Author: Tony DiCola
+# License: Public Domain
+import time
+from machine import I2C
 
-Note that the pip install method **won't** install the example code.
+# Create the I2C object
+i2c = I2C(0)
+
+# Import the MCP4725 module.
+import MCP4725
+
+# Create a DAC instance.
+dac = MCP4725.MCP4725(i2c)
+
+# Note you can change the I2C address from its default (0x60), and/or the I2C
+# bus by passing in these optional parameters:
+#dac = MCP4725.MCP4725(i2c, address=0x62)
+
+# Loop forever alternating through different voltage outputs.
+print('Press Ctrl-C to quit...')
+while True:
+    print('Setting voltage to 0!')
+    dac.set(0)
+    time.sleep(2.0)
+    print('Setting voltage to 1/2 Vdd!')
+    dac.set(2048)  # 2048 = half of 4096
+    time.sleep(2.0)
+    print('Setting voltage to Vdd!')
+    dac.set(4096, True)
+    time.sleep(2.0)
+```
